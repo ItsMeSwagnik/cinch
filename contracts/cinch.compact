@@ -1,0 +1,83 @@
+// ============================================================
+// Cinch — Confidential Personal Spending Tracker
+// ============================================================
+//
+// PRIVACY MODEL
+// =============
+// PUBLIC  (on-chain, anyone can see):
+//   - proofCount       : total proofs generated (no amounts)
+//   - ownerCommitment  : hash of user's secret key (pseudonymous)
+//   - lastProofPeriod  : period tag of the last proof (e.g. "2026-10")
+//   - lastProofPassed  : boolean pass/fail of the last proof
+//   - lastProofType    : "overall" or a category label (e.g. "dining")
+//   - lastThreshold    : the public threshold proved against
+//
+// PRIVATE (private witness, never on-chain):
+//   - secretKey        : user's 32-byte identity key
+//   - totalSpend       : actual total spend for the period
+//   - categorySpend    : actual category spend for the period
+//
+// WHAT THE USER PROVES without revealing:
+//   - "My total spend for period P is <= threshold T"
+//   - "My spend in category C for period P is <= threshold T"
+//   Actual amounts, merchants, and transaction history are NEVER disclosed.
+// ============================================================
+
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+export ledger proofCount: Counter;
+export ledger ownerCommitment: Bytes<32>;
+export ledger lastProofPeriod: Bytes<32>;
+export ledger lastProofPassed: Boolean;
+export ledger lastProofType: Bytes<32>;
+export ledger lastThreshold: Uint<64>;
+
+constructor() {
+  proofCount.increment(0);
+  ownerCommitment = pad(32, "cinch:uninitialized");
+  lastProofPeriod = pad(32, "");
+  lastProofPassed = false;
+  lastProofType = pad(32, "");
+  lastThreshold = 0;
+}
+
+witness localSecretKey(): Bytes<32>;
+witness getTotalSpend(): Uint<64>;
+witness getCategorySpend(): Uint<64>;
+
+export circuit ownerKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "cinch:owner:v1"), sk]);
+}
+
+export circuit proveOverallBudget(
+  period: Bytes<32>,
+  threshold: Uint<64>
+): [] {
+  const sk = localSecretKey();
+  const spend = getTotalSpend();
+  const passed = spend <= threshold;
+  ownerCommitment = disclose(ownerKey(sk));
+  lastProofPeriod = disclose(period);
+  lastProofPassed = disclose(passed);
+  lastProofType = disclose(pad(32, "overall"));
+  lastThreshold = disclose(threshold);
+  proofCount.increment(1);
+}
+
+export circuit proveCategoryBudget(
+  period: Bytes<32>,
+  category: Bytes<32>,
+  threshold: Uint<64>
+): [] {
+  const sk = localSecretKey();
+  const spend = getCategorySpend();
+  const passed = spend <= threshold;
+  ownerCommitment = disclose(ownerKey(sk));
+  lastProofPeriod = disclose(period);
+  lastProofPassed = disclose(passed);
+  lastProofType = disclose(category);
+  lastThreshold = disclose(threshold);
+  proofCount.increment(1);
+}
