@@ -60,6 +60,9 @@ Midnight is the right chain for this because a normal encrypted app can't let a 
 
 ```
 cinch/
+├── .github/
+│   └── workflows/
+│       └── ci.yml             # CI pipeline (install → compile → test → build)
 ├── contracts/
 │   └── cinch.compact          # Compact smart contract
 ├── managed/
@@ -67,36 +70,61 @@ cinch/
 ├── src/
 │   ├── app/
 │   │   ├── page.tsx           # Landing page
-│   │   ├── verify/            # Proof verification page
+│   │   ├── layout.tsx         # Root layout + metadata
+│   │   ├── globals.css
+│   │   ├── verify/
+│   │   │   └── page.tsx       # Proof verification page (no wallet needed)
 │   │   └── app/
-│   │       ├── page.tsx       # Dashboard
-│   │       ├── expenses/      # Expense logging
-│   │       └── proofs/        # Proof history
+│   │       ├── page.tsx       # Dashboard — wallet connect + proof generator
+│   │       ├── expenses/
+│   │       │   └── page.tsx   # Expense logging (local only)
+│   │       └── proofs/
+│   │           └── page.tsx   # Proof history
 │   ├── components/
 │   │   ├── BudgetProof.tsx    # ZK proof generator UI
 │   │   ├── WalletConnect.tsx  # Wallet connection button
-│   │   └── WalletPickerDialog.tsx
+│   │   ├── WalletPickerDialog.tsx
+│   │   ├── Layout.tsx
+│   │   └── ui/
+│   │       └── button.tsx
 │   ├── contexts/
-│   │   └── WalletContext.tsx  # Wallet state management
+│   │   └── WalletContext.tsx  # Wallet state + auto-reconnect
+│   ├── hooks/
+│   │   └── useMidnight.ts
 │   ├── lib/
-│   │   ├── contract-utils.ts  # Contract address + encoding helpers + localStorage
+│   │   ├── contract-utils.ts  # Contract address, encoding helpers, localStorage
 │   │   ├── midnight-providers.ts # Midnight.js provider wiring + ZK proof calls
-│   │   └── ws-shim.js         # Browser WebSocket shim
-│   └── witnesses.ts           # Midnight.js private state witnesses
+│   │   ├── utils.ts
+│   │   └── ws-shim.js         # Browser WebSocket shim for isomorphic-ws
+│   ├── utils/
+│   │   └── contract.ts        # Legacy contract address constants
+│   ├── witnesses.ts           # Midnight.js private state witnesses
+│   ├── App.tsx
+│   └── main.tsx
 ├── tests/
 │   ├── cinch-simulator.ts     # Off-chain contract simulator
 │   └── cinch.test.ts          # Vitest tests
-├── deploy/                    # Standalone deployment scripts
-│   └── src/
-│       ├── deploy.ts          # Deploy contract to Preprod
-│       ├── cli.ts             # Read on-chain state via CLI
-│       └── network.ts         # Network config + wallet management
+├── deploy/                    # Standalone deployment scripts (run separately)
+│   ├── src/
+│   │   ├── deploy.ts          # Deploy contract to Preprod
+│   │   ├── cli.ts             # Read on-chain state via CLI
+│   │   ├── network.ts         # Network config + wallet management
+│   │   ├── wallet.ts
+│   │   ├── wallet-state.ts
+│   │   └── check-balance.ts
+│   ├── docker-compose.yml
+│   ├── package.json
+│   └── tsconfig.json
 ├── docs/
 │   └── USAGE.md
 ├── public/
-│   └── managed/cinch/         # ZK artifacts served statically
+│   ├── managed/cinch/         # ZK artifacts served statically for FetchZkConfigProvider
+│   └── icon.svg
 ├── .env.preprod               # Preprod environment variables (gitignored)
-└── .github/workflows/ci.yml   # CI pipeline
+├── next.config.mjs
+├── PROPOSAL.md
+├── QUICK_START.md
+└── README.md
 ```
 
 ---
