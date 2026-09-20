@@ -5,11 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run sync-artifacts && next build",
-    "build:vercel": "next build",
+    "build:vercel": "npm run sync-artifacts && next build",
     "start": "next start",
     "lint": "next lint",
     "compact": "compact compile contracts/cinch.compact managed/cinch",
-    "sync-artifacts": "xcopy /E /I /Y managed\\cinch public\\managed\\cinch >nul 2>&1 || rsync -a managed/cinch/ public/managed/cinch/",
+    "sync-artifacts": "node -e \"const{cpSync,mkdirSync}=require('fs');mkdirSync('public/managed/cinch',{recursive:true});cpSync('managed/cinch','public/managed/cinch',{recursive:true});\"",
     "test": "vitest run",
     "ci": "npm run compact && npm run test && npm run build"
   },
