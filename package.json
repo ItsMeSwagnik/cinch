@@ -4,15 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run sync-artifacts && next build",
     "start": "next start",
     "lint": "next lint",
     "compact": "compact compile contracts/cinch.compact managed/cinch",
+    "sync-artifacts": "xcopy /E /I /Y managed\\cinch public\\managed\\cinch >nul 2>&1 || rsync -a managed/cinch/ public/managed/cinch/",
     "test": "vitest run",
     "ci": "npm run compact && npm run test && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@midnight-ntwrk/dapp-connector-api": "^4.0.1",
+    "@midnight-ntwrk/midnight-js-contracts": "^4.1.1",
+    "@midnight-ntwrk/midnight-js-fetch-zk-config-provider": "^4.1.1",
+    "@midnight-ntwrk/midnight-js-http-client-proof-provider": "^4.1.1",
+    "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "^4.1.1",
+    "@midnight-ntwrk/midnight-js-network-id": "^4.1.1",
     "@midnightntwrk/wallet-sdk": "^1.2.0",
     "@radix-ui/react-slot": "1.1.1",
     "class-variance-authority": "^0.7.1",
