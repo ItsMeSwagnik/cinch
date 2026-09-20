@@ -6,7 +6,6 @@ import { useWallet } from '@/contexts/WalletContext'
 import { ArrowLeft, Wallet } from 'lucide-react'
 import { useState } from 'react'
 
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? ''
 
 export default function AppPage() {
   const { status, address, connectedWallet } = useWallet()
@@ -50,7 +49,7 @@ export default function AppPage() {
               <feComponentTransfer in="monoNoise" result="alphaAdjustedNoise">
                 <feFuncA type="discrete" tableValues="0.03 0.06 0.09 0.12" />
               </feComponentTransfer>
-              <feComposite in="blur" in2="alphaAdjustedNoise" operator="multiply" result="noisyBlur" />
+              <feComposite in="blur" in2="alphaAdjustedNoise" operator="over" result="noisyBlur" />
               <feMerge><feMergeNode in="noisyBlur" /></feMerge>
             </filter>
           </defs>
@@ -74,9 +73,10 @@ export default function AppPage() {
         </a>
 
         <nav className="hidden items-center gap-6 md:flex">
-          <a href="/app" className="text-sm text-white/70 transition-colors hover:text-white">Dashboard</a>
+          <a href="/app" className="text-sm text-white transition-colors">Dashboard</a>
           <a href="/app/expenses" className="text-sm text-white/70 transition-colors hover:text-white">Expenses</a>
           <a href="/app/proofs" className="text-sm text-white/70 transition-colors hover:text-white">My Proofs</a>
+          <a href="/verify" className="text-sm text-white/70 transition-colors hover:text-white">Verify</a>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -139,7 +139,7 @@ export default function AppPage() {
               </div>
 
               {/* Right: proof generator */}
-              <BudgetProof contractAddress={CONTRACT_ADDRESS || null} />
+              <BudgetProof />
             </div>
           </div>
         )}

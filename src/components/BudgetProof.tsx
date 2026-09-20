@@ -2,29 +2,27 @@
 
 import { useState } from "react"
 import { useWallet } from "@/contexts/WalletContext"
-import { buildShareableProofUrl } from "@/utils/contract"
+import {
+  callProveOverallBudget,
+  callProveCategoryBudget,
+} from "@/lib/midnight-providers"
+import {
+  loadExpenses,
+  saveProof,
+  calcTotalSpend,
+  calcCategorySpend,
+  CONTRACT_ADDRESS,
+  type StoredProof,
+} from "@/lib/contract-utils"
 
 type ProofType = "overall" | "category"
 type ProofStatus = "idle" | "generating" | "done" | "error"
 
-interface ProofResult {
-  passed: boolean
-  type: ProofType
-  category?: string
-  threshold: number
-  period: string
-  shareUrl: string
-}
-
-interface BudgetProofProps {
-  contractAddress: string | null
-}
-
 const CATEGORIES = ["Dining", "Subscriptions", "Groceries", "Entertainment", "Transport", "Bills", "Shopping", "Other"]
 
-export function BudgetProof({ contractAddress }: BudgetProofProps) {
-  const { status: walletStatus } = useWallet()
-  const isConnected = walletStatus === 'connected'
+export function BudgetProof() {
+  const { status: walletStatus, connectedWallet, address } = useWallet()
+  const isConnected = walletStatus === "connected"
 
   const [proofType, setProofType] = useState<ProofType>("overall")
   const [category, setCategory] = useState("dining")
@@ -34,40 +32,66 @@ export function BudgetProof({ contractAddress }: BudgetProofProps) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
   })
   const [status, setStatus] = useState<ProofStatus>("idle")
-  const [result, setResult] = useState<ProofResult | null>(null)
+  const [result, setResult] = useState<StoredProof | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   async function generateProof() {
-    if (!isConnected) { setError("Connect your wallet first."); return }
+    if (!isConnected || !connectedWallet) { setError("Connect your wallet first."); return }
+    if (!CONTRACT_ADDRESS) { setError("Contract address not configured."); return }
+
     setError(null)
     setStatus("generating")
+    setResult(null)
+
     try {
-      // TODO: replace with real Midnight.js circuit call once contract is deployed:
-      // proofType === "overall"
-      //   ? await CinchAPI.proveOverallBudget(providers, encodePeriod(period), BigInt(threshold))
-      //   : await CinchAPI.proveCategoryBudget(providers, encodePeriod(period), encodeCategory(category), BigInt(threshold))
-      await new Promise((r) => setTimeout(r, 2200))
-      const mockSpend = Math.floor(Math.random() * threshold * 1.4)
-      const passed = mockSpend <= threshold
-      const shareUrl = buildShareableProofUrl({
-        contractAddress: contractAddress ?? 'pending',
-        period,
-        proofType: proofType === "overall" ? "overall" : category,
+      const expenses = loadExpenses(address)
+      // threshold is in dollars, contract uses cents as bigint
+      const thresholdCents = BigInt(Math.round(threshold * 100))
+
+      let tx: any
+      if (proofType === "overall") {
+        const totalSpend = calcTotalSpend(expenses, period)
+        tx = await callProveOverallBudget(connectedWallet, CONTRACT_ADDRESS, period, thresholdCents, totalSpend)
+      } else {
+        const catSpend = calcCategorySpend(expenses, period, category)
+        tx = await callProveCategoryBudget(connectedWallet, CONTRACT_ADDRESS, period, category, thresholdCents, catSpend)
+      }
+
+      const txId: string = tx?.public?.txId ?? tx?.txId ?? "unknown"
+      const passed = proofType === "overall"
+        ? calcTotalSpend(expenses, period) <= thresholdCents
+        : calcCategorySpend(expenses, period, category) <= thresholdCents
+
+      const proof: StoredProof = {
+        id: Date.now(),
+        txId,
+        type: proofType,
+        category: proofType === "category" ? category : undefined,
         threshold,
+        period,
         passed,
-      })
-      setResult({ passed, type: proofType, category: proofType === "category" ? category : undefined, threshold, period, shareUrl })
+        generatedAt: new Date().toISOString(),
+        contractAddress: CONTRACT_ADDRESS,
+      }
+
+      saveProof(address, proof)
+      setResult(proof)
       setStatus("done")
     } catch (e: any) {
-      setError(e?.message ?? "Proof generation failed")
+      const msg: string = e?.message ?? String(e) ?? "Proof generation failed"
+      const friendly = msg.includes('No public state found')
+        ? `Contract not found on this network. Redeploy the contract to Preprod and update NEXT_PUBLIC_CONTRACT_ADDRESS.`
+        : msg
+      setError(friendly)
       setStatus("error")
     }
   }
 
-  function copyShareUrl() {
+  function copyVerifyLink() {
     if (!result) return
-    navigator.clipboard.writeText(result.shareUrl)
+    const url = `${window.location.origin}/verify?c=${result.contractAddress}`
+    navigator.clipboard.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -139,13 +163,13 @@ export function BudgetProof({ contractAddress }: BudgetProofProps) {
             </div>
           </div>
           <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-            <p className="text-xs text-white/40">Shareable proof link</p>
-            <p className="mt-0.5 break-all font-mono text-xs text-white/60">{result.shareUrl}</p>
+            <p className="text-xs text-white/40">Transaction ID</p>
+            <p className="mt-0.5 break-all font-mono text-xs text-white/60">{result.txId}</p>
           </div>
-          <button onClick={copyShareUrl} className="mt-2 w-full rounded-lg border border-white/15 py-1.5 text-xs text-white/70 hover:bg-white/5 transition-colors">
-            {copied ? "Copied!" : "Copy shareable link"}
+          <button onClick={copyVerifyLink} className="mt-2 w-full rounded-lg border border-white/15 py-1.5 text-xs text-white/70 hover:bg-white/5 transition-colors">
+            {copied ? "Copied!" : "Copy verifiable proof link"}
           </button>
-          <p className="mt-3 text-xs text-white/30">Your actual spend amount was never disclosed.</p>
+          <p className="mt-3 text-xs text-white/30">Your actual spend amount was never disclosed. Proof is on-chain.</p>
         </div>
       )}
     </div>
