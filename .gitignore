@@ -10,3 +10,7 @@ midnight.config.js
 .midnight-state.json
 logs/
 *.log
+public/managed/
+deploy/node_modules/
+deploy/contracts/
+deploy/.midnight-state.json
