@@ -73,7 +73,7 @@ export default function HomePage() {
                 <feComponentTransfer in="monoNoise" result="alphaAdjustedNoise">
                   <feFuncA type="discrete" tableValues="0.03 0.06 0.09 0.12" />
                 </feComponentTransfer>
-                <feComposite in="blur" in2="alphaAdjustedNoise" operator="multiply" result="noisyBlur" />
+                <feComposite in="blur" in2="alphaAdjustedNoise" operator="over" result="noisyBlur" />
                 <feMerge><feMergeNode in="noisyBlur" /></feMerge>
               </filter>
               <linearGradient id="threadFade1" x1="0%" y1="0%" x2="100%" y2="0%">

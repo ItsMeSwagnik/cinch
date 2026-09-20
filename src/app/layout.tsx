@@ -11,11 +11,10 @@ export const metadata: Metadata = {
   description: 'Prove your budget. Keep your spending yours.',
   icons: {
     icon: [
-      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
-      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
+      { url: '/icon-light-32x32.svg', media: '(prefers-color-scheme: light)', type: 'image/svg+xml' },
+      { url: '/icon-dark-32x32.svg', media: '(prefers-color-scheme: dark)', type: 'image/svg+xml' },
       { url: '/icon.svg', type: 'image/svg+xml' },
     ],
-    apple: '/apple-icon.png',
   },
 }
 
