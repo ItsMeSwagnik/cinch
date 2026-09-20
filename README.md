@@ -1,6 +1,9 @@
 # Cinch
 
 ![CI](https://github.com/ItsMeSwagnik/cinch/actions/workflows/ci.yml/badge.svg)
+![Compact](https://img.shields.io/badge/Compact-0.31.1-orange)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
+![Network](https://img.shields.io/badge/Network-Preprod-purple)
 
 > Prove your budget. Keep your spending yours.
 
@@ -14,10 +17,25 @@
 
 ## Contract Address
 
-| Network | Contract Address |
-|---------|------------------|
-| Preprod | `6dfe317605cdba782fcb18fbeeaa567469a42ba2aedbcf7162bce37ce4f8df96` |
-| Preview | `5e6d68d8256c168f30bb2c1c4f604b50a5542569cc3f6876d71954c1e15047e8` |
+| Network | Contract Address | Status |
+|---------|------------------|--------|
+| Preprod | `6dfe317605cdba782fcb18fbeeaa567469a42ba2aedbcf7162bce37ce4f8df96` | ✅ Deployed |
+| Preview | `5e6d68d8256c168f30bb2c1c4f604b50a5542569cc3f6876d71954c1e15047e8` | ✅ Deployed |
+
+---
+
+## Features
+
+- ✅ **Private Expense Logging** — all spending data stays on your device, never transmitted
+- ✅ **Overall Budget Proof** — prove your total monthly spend is under a threshold without revealing the amount
+- ✅ **Category Budget Proof** — prove a specific category (dining, subscriptions, etc.) is under a threshold
+- ✅ **Period-Scoped Proofs** — proofs are tied to a month, preventing stale proof reuse
+- ✅ **Shareable Verification Links** — share a link for anyone to verify your proof on-chain, no wallet needed
+- ✅ **Pseudonymous Identity** — owner commitment is a hash of your secret key, never your wallet address
+- ✅ **Lace / 1AM Wallet Integration** — seamless wallet connection with auto-reconnect across page navigation
+- ✅ **Persistent Wallet Session** — wallet reconnects automatically on page refresh via localStorage
+- ✅ **Disconnect Support** — one-click wallet disconnect
+- ✅ **Spending Breakdown Chart** — pie chart of category spending per period, computed locally
 
 ---
 
@@ -33,22 +51,59 @@ Midnight is the right chain for this because a normal encrypted app can't let a 
 
 ## Privacy Model
 
-| | Data |
-|---|---|
-| **Public** (on-chain) | Proof count, pass/fail result, threshold, period tag, category label, pseudonymous owner commitment |
-| **Private** (never on-chain) | Actual spend amounts, individual transactions, merchant names, full transaction history, user secret key |
-| **What is proved** | `total_spend ≤ threshold` or `category_spend ≤ threshold` for a given period — the actual dollar amount is never disclosed |
+### What is Publicly Visible On-Chain
+
+| Data | Description |
+|------|-------------|
+| Proof count | Total number of proofs generated — no amounts |
+| Pass/fail result | Whether the last proof passed or failed |
+| Threshold | The dollar threshold proved against |
+| Period tag | The month the proof covers (e.g. `2026-10`) |
+| Category label | For category proofs: the category name (e.g. `dining`) |
+| Owner commitment | A cryptographic hash derived from the user's secret key — not the key itself |
+
+### What is Never Revealed
+
+| Data | Why it stays private |
+|------|----------------------|
+| Actual spend amount | Passed as a private witness to the ZK circuit, never disclosed |
+| Individual transactions | Stored only in browser localStorage, never transmitted |
+| Merchant names | Client-side only, never leaves the device |
+| Full transaction history | Never transmitted or stored on-chain |
+| User secret key | Generated locally, never leaves the device |
+| Wallet address | No wallet address is ever linked to a proof on-chain |
+
+### What Users Prove Without Revealing
+
+| Claim | Proven How | What Stays Private |
+|-------|------------|--------------------|
+| "My total spend is under $X this month" | ZK proof: `totalSpend ≤ threshold` | The actual spend amount |
+| "My dining spend is under $Y this month" | ZK proof: `categorySpend ≤ threshold` | The actual category spend |
+| "This proof is mine" | Owner commitment: `hash(secretKey)` | The secret key itself |
+
+### Privacy Guarantee Summary
+
+An observer watching the Midnight blockchain can see that a proof was submitted and whether it passed, but cannot determine the actual spend amount, the individual transactions, or who submitted it. The only link between a user and their proof is a ZK proof that is verified on-chain — the raw spend data is never stored anywhere but the user's own device.
+
+| What an observer sees | What an observer cannot see |
+|-----------------------|-----------------------------|
+| Pass/fail result | Actual spend amount |
+| Threshold (e.g. $1,500) | Individual transactions |
+| Period (e.g. 2026-10) | Merchant names |
+| Category label (category proofs) | Full transaction history |
+| Owner commitment hash | The user's secret key |
+| Proof count | The user's wallet address |
 
 ---
 
 ## Tech Stack
 
-| Layer | Choice |
-|---|---|
+| Component | Technology |
+|-----------|------------|
 | Smart contract | Compact (Midnight Network) |
 | ZK proof generation | Midnight proof server (Docker) |
 | Chain interaction | Midnight.js 4.x |
-| Wallet | Lace · 1AM · any Midnight-compatible wallet |
+| Wallet | Lace · 1AM via DApp Connector API v4 |
 | Frontend | Next.js 15 + React 19 + TypeScript |
 | Styling | Tailwind CSS v4 |
 | Tests | Vitest |
@@ -131,7 +186,7 @@ cinch/
 
 ## Prerequisites
 
-- **Midnight-compatible wallet** — [Lace](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or [1AM](https://www.1am.app/), set to Preprod
+- **Midnight-compatible wallet** — [Lace](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or [1AM](https://www.1am.app/), set to **Preprod** network
 - **Node.js v22** or higher
 - **Docker Desktop** (running)
 - **Compact compiler** — install using:
@@ -211,27 +266,39 @@ npm install
 npm run deploy -- --network preprod
 ```
 
-After deploying, update `NEXT_PUBLIC_CONTRACT_ADDRESS` in `.env.preprod` and copy to `.env.local`.
+The deploy script handles wallet creation, faucet waiting, DUST registration, and retries automatically. After deploying, update `NEXT_PUBLIC_CONTRACT_ADDRESS` in `.env.preprod` and copy to `.env.local`.
 
 ---
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_NETWORK_ID` | Network ID (`preprod`) |
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | Deployed contract address |
-| `NEXT_PUBLIC_PROOF_SERVER` | Proof server URL (default: `http://localhost:6300`) |
-| `NEXT_PUBLIC_INDEXER` | Indexer GraphQL endpoint |
-| `NEXT_PUBLIC_INDEXER_WS` | Indexer WebSocket endpoint |
-| `NEXT_PUBLIC_NODE` | Node RPC endpoint |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_NETWORK_ID` | Network ID | `preprod` |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | Deployed contract address | `6dfe317...` |
+| `NEXT_PUBLIC_PROOF_SERVER` | Proof server URL | `http://localhost:6300` |
+| `NEXT_PUBLIC_INDEXER` | Indexer GraphQL endpoint | `https://indexer.preprod.midnight.network/api/v4/graphql` |
+| `NEXT_PUBLIC_INDEXER_WS` | Indexer WebSocket endpoint | `wss://indexer.preprod.midnight.network/api/v4/graphql/ws` |
+| `NEXT_PUBLIC_NODE` | Node RPC endpoint | `https://rpc.preprod.midnight.network` |
+
+---
+
+## Network Endpoints (Preprod)
+
+| Service | URL |
+|---------|-----|
+| Node RPC | `https://rpc.preprod.midnight.network` |
+| Indexer (GraphQL) | `https://indexer.preprod.midnight.network/api/v4/graphql` |
+| Indexer (WebSocket) | `wss://indexer.preprod.midnight.network/api/v4/graphql/ws` |
+| Faucet | `https://midnight-tmnight-preprod.nethermind.dev/` |
+| Block Explorer | `https://preprod.midnightexplorer.com/` |
 
 ---
 
 ## App Pages
 
 | Route | Purpose |
-|---|---|
+|-------|---------|
 | `/` | Landing page |
 | `/app` | Dashboard — connect wallet, generate ZK proofs |
 | `/app/expenses` | Log expenses locally (never transmitted) |
@@ -246,6 +313,19 @@ There are no pre-set limits. When generating a proof, the user enters a **thresh
 
 ---
 
+## Network Verification
+
+This app targets **Midnight Preprod** (`networkId = 'preprod'`).
+
+Verified in:
+- `.env.preprod` → `NEXT_PUBLIC_NETWORK_ID=preprod`
+- `src/lib/midnight-providers.ts` → `setNetworkId(networkId)` called from wallet connection status
+- `src/contexts/WalletContext.tsx` → connects with `NETWORK_ID = 'preprod'`
+
+If your wallet is on a different network, the connection will fail with a network mismatch error. Open your wallet → Settings → Networks and switch to **Midnight Preprod**.
+
+---
+
 ## CI/CD
 
 GitHub Actions on every push to `main`: install → compact compile → run tests → build.
@@ -256,23 +336,16 @@ See [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
 ## Troubleshooting
 
-**`compact: command not found`**
-- Install Compact compiler (see Prerequisites above)
-- Reload shell: `source ~/.zshrc` or `source ~/.bashrc`
-- If still not found: `export PATH="$HOME/.compact/bin:$PATH"`
-
-**`No default compiler set`**
-- Run `compact update 0.31.1`
-
-**`Wallet.InsufficientFunds` on deploy**
-- Your wallet needs tNIGHT from the faucet AND DUST generated
-- Fund the wallet and wait for DUST to appear before deploying
-
-**`No Midnight wallet found`**
-- Install [Lace](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or [1AM](https://www.1am.app/), enable Midnight Preprod, then reload
-
-**Proof server not responding**
-- Make sure Docker is running: `docker ps | grep proof-server`
+| Problem | Fix |
+|---------|-----|
+| `compact: command not found` | Install Compact compiler (see Prerequisites); reload shell |
+| `No default compiler set` | Run `compact update 0.31.1` |
+| `Wallet.InsufficientFunds` on deploy | Fund wallet with tNIGHT and wait for DUST to generate |
+| `No Midnight wallet found` | Install Lace or 1AM, enable Midnight Preprod, reload |
+| Proof server not responding | Check Docker is running: `docker ps \| grep proof-server` |
+| Network mismatch error | Switch wallet to Midnight Preprod in wallet settings |
+| Proof generation hangs | Restart the proof server Docker container |
+| Expenses not in proof | Ensure expense dates match the period selected in the proof generator |
 
 ---
 
@@ -282,6 +355,29 @@ See [docs/USAGE.md](docs/USAGE.md)
 
 ---
 
+## Resources
+
+- [Midnight Documentation](https://docs.midnight.network)
+- [Compact Language Guide](https://docs.midnight.network/develop/compact)
+- [DApp Connector API](https://docs.midnight.network/develop/dapp-connector)
+- [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/)
+- [Preprod Explorer](https://preprod.midnightexplorer.com/)
+- [Lace Wallet](https://www.lace.io/midnight)
+- [1AM Wallet](https://www.1am.app/)
+- [Builder Resources](https://docs.midnight.network/build)
+
+---
+
 ## Product X Profile
 
 [PLACEHOLDER — add X account link after creating the account]
+
+---
+
+## License
+
+Apache-2.0
+
+---
+
+Built for the **Midnight Builder Challenge** — Rise In 🌙
