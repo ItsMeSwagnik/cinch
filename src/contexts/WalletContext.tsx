@@ -31,7 +31,6 @@ const STORAGE_KEY = 'cinch-wallet'
 const NETWORK_ID = 'preprod'
 
 const semverSatisfies = (version: string, range: string): boolean => {
-  // Simple ^4.0.0 check — major version must match
   try {
     const [major] = version.split('.').map(Number)
     const [rangeMajor] = range.replace('^', '').split('.').map(Number)
@@ -57,12 +56,21 @@ const getAllWallets = (): WalletAPI[] => {
     if (id) seen.add(id)
     wallets.push(w)
   }
-  // Check known stable keys first (Lace = mnLace, 1AM = '1am')
   add(((window as any).midnight as Record<string, unknown>)['mnLace'])
   add(((window as any).midnight as Record<string, unknown>)['1am'])
-  // Scan all values for any other CAIP-372 compatible wallet
   Object.values((window as any).midnight).forEach(add)
   return wallets
+}
+
+// Persist only the wallet name used to auto-reconnect — no address stored
+function getSavedWalletName(): string | null {
+  try { return localStorage.getItem(STORAGE_KEY) } catch { return null }
+}
+function saveWalletName(name: string) {
+  try { localStorage.setItem(STORAGE_KEY, name) } catch { /* ignore */ }
+}
+function clearSavedWalletName() {
+  try { localStorage.removeItem(STORAGE_KEY) } catch { /* ignore */ }
 }
 
 export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
@@ -75,30 +83,18 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const retryWallet = useRef<WalletAPI | null>(null)
 
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const { address: a, walletName: n } = JSON.parse(saved) as { address: string; walletName: string }
-        if (a && n) { setAddress(a); setWalletName(n); setStatus('connected') }
-      }
-    } catch { /* ignore */ }
-    return () => { if (retryTimer.current) clearTimeout(retryTimer.current) }
-  }, [])
-
-  const doConnect = (wallet: WalletAPI) => {
+  const doConnect = (wallet: WalletAPI, connectPromise?: Promise<any>) => {
     setStatus('connecting')
     setWalletName(wallet.name ?? 'Wallet')
     retryWallet.current = wallet
-    // connect() MUST be called synchronously in the user-gesture path
-    wallet.connect(NETWORK_ID)
+    ;(connectPromise ?? wallet.connect(NETWORK_ID))
       .then(async (api: any) => {
         setStatus('syncing')
         const cs = await api.getConnectionStatus().catch(() => null)
         if (cs && cs.status === 'disconnected') throw new Error(`${wallet.name ?? 'Wallet'} is disconnected. Unlock it and try again.`)
         const { shieldedAddress } = await api.getShieldedAddresses()
         const short = `${shieldedAddress.slice(0, 14)}...${shieldedAddress.slice(-6)}`
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ address: short, walletName: wallet.name ?? 'Wallet' }))
+        saveWalletName(wallet.name ?? 'Wallet')
         setAddress(short)
         setWalletName(wallet.name ?? 'Wallet')
         setConnectedWallet(api)
@@ -122,10 +118,48 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
           setStatus('error')
           return
         }
+        // Silent auto-reconnect failure — just go back to disconnected, don't show error
+        if (retryWallet.current === wallet && status !== 'connected') {
+          setStatus('disconnected')
+          return
+        }
         setError(msg)
         setStatus('error')
       })
   }
+
+  // Auto-reconnect on mount: poll for wallet extension to inject, then reconnect silently
+  useEffect(() => {
+    const savedName = getSavedWalletName()
+    if (!savedName) return
+
+    let cancelled = false
+    let attempts = 0
+    const MAX_ATTEMPTS = 20 // 2s total
+
+    const tryReconnect = () => {
+      if (cancelled) return
+      const wallets = getAllWallets()
+      const wallet = wallets.find(w => w.name === savedName) ?? wallets[0]
+      if (wallet) {
+        doConnect(wallet, wallet.connect(NETWORK_ID))
+        return
+      }
+      attempts++
+      if (attempts < MAX_ATTEMPTS) {
+        setTimeout(tryReconnect, 100)
+      }
+      // Extension never injected — silently stay disconnected
+    }
+
+    // Small delay to let extensions inject into window.midnight
+    setTimeout(tryReconnect, 200)
+
+    return () => {
+      cancelled = true
+      if (retryTimer.current) clearTimeout(retryTimer.current)
+    }
+  }, [])
 
   const connect = useCallback(() => {
     setError('')
@@ -135,21 +169,26 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
       setStatus('error')
       return
     }
-    if (wallets.length === 1) { doConnect(wallets[0]); return }
+    if (wallets.length === 1) {
+      const connectPromise = wallets[0].connect(NETWORK_ID)
+      doConnect(wallets[0], connectPromise)
+      return
+    }
     setAvailableWallets(wallets)
     setStatus('picking')
   }, [])
 
   const selectWallet = useCallback((wallet: WalletAPI) => {
+    const connectPromise = wallet.connect(NETWORK_ID)
     setStatus('connecting')
     setAvailableWallets([])
-    doConnect(wallet)
+    doConnect(wallet, connectPromise)
   }, [])
 
   const disconnect = useCallback(() => {
     if (retryTimer.current) clearTimeout(retryTimer.current)
     retryWallet.current = null
-    sessionStorage.removeItem(STORAGE_KEY)
+    clearSavedWalletName()
     setStatus('disconnected')
     setAddress('')
     setWalletName('')
