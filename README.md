@@ -1,6 +1,6 @@
 # Cinch
 
-![CI](https://github.com/YOUR_GITHUB_USERNAME/cinch/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/ItsMeSwagnik/cinch/actions/workflows/ci.yml/badge.svg)
 
 > Prove your budget. Keep your spending yours.
 
@@ -16,26 +16,14 @@
 
 | Network | Contract Address |
 |---------|------------------|
-| Preview | `5e6d68d8256c168f30bb2c1c4f604b50a5542569cc3f6876d71954c1e15047e8` |
 | Preprod | `6dfe317605cdba782fcb18fbeeaa567469a42ba2aedbcf7162bce37ce4f8df96` |
-
----
-
-## Features
-
-- Log expenses locally — data never leaves your device
-- Generate ZK proofs of overall monthly budget (total spend ≤ threshold)
-- Generate ZK proofs of category-specific budgets (dining, subscriptions, etc.)
-- Period-scoped proofs prevent stale proof reuse
-- Shareable proof links for third-party verification
-- Pseudonymous on-chain identity via owner commitment hash
-- Wallet integration with Lace and 1AM (any Midnight-compatible wallet)
+| Preview | `5e6d68d8256c168f30bb2c1c4f604b50a5542569cc3f6876d71954c1e15047e8` |
 
 ---
 
 ## What This Project Does
 
-Most "prove you're financially responsible" flows today require handing over full bank statements or transaction exports. Cinch breaks that tradeoff: users log spending locally on their own device — encrypted, never transmitted — and when they need to prove a budget claim, the app generates a zero-knowledge proof that the claim is true without the verifier ever seeing the underlying data.
+Most "prove you're financially responsible" flows today require handing over full bank statements or transaction exports. Cinch breaks that tradeoff: users log spending locally on their own device — never transmitted — and when they need to prove a budget claim, the app generates a zero-knowledge proof that the claim is true without the verifier ever seeing the underlying data.
 
 Two proof types are supported: an **overall monthly budget badge** ("my total spend this month is under $X") and a **category budget proof** ("my dining spend is under $Y"). Both are period-scoped so a stale proof can't be reused to misrepresent a later month. A shareable link lets any third party verify the proof on-chain without the user re-submitting anything.
 
@@ -79,6 +67,7 @@ cinch/
 ├── src/
 │   ├── app/
 │   │   ├── page.tsx           # Landing page
+│   │   ├── verify/            # Proof verification page
 │   │   └── app/
 │   │       ├── page.tsx       # Dashboard
 │   │       ├── expenses/      # Expense logging
@@ -89,14 +78,23 @@ cinch/
 │   │   └── WalletPickerDialog.tsx
 │   ├── contexts/
 │   │   └── WalletContext.tsx  # Wallet state management
-│   ├── utils/
-│   │   └── contract.ts        # Contract address + encoding helpers
+│   ├── lib/
+│   │   ├── contract-utils.ts  # Contract address + encoding helpers + localStorage
+│   │   ├── midnight-providers.ts # Midnight.js provider wiring + ZK proof calls
+│   │   └── ws-shim.js         # Browser WebSocket shim
 │   └── witnesses.ts           # Midnight.js private state witnesses
 ├── tests/
 │   ├── cinch-simulator.ts     # Off-chain contract simulator
-│   └── cinch.test.ts          # 7 Vitest tests
+│   └── cinch.test.ts          # Vitest tests
+├── deploy/                    # Standalone deployment scripts
+│   └── src/
+│       ├── deploy.ts          # Deploy contract to Preprod
+│       ├── cli.ts             # Read on-chain state via CLI
+│       └── network.ts         # Network config + wallet management
 ├── docs/
 │   └── USAGE.md
+├── public/
+│   └── managed/cinch/         # ZK artifacts served statically
 ├── .env.preprod               # Preprod environment variables (gitignored)
 └── .github/workflows/ci.yml   # CI pipeline
 ```
@@ -117,13 +115,35 @@ cinch/
 
 ---
 
-## Installation
+## Setup & Run Locally
 
-```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/cinch.git
-cd cinch
-npm install
-```
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/ItsMeSwagnik/cinch.git
+   cd cinch
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Copy environment variables:
+   ```bash
+   copy .env.preprod .env.local
+   ```
+
+4. Start the ZK proof server:
+   ```bash
+   docker run -p 6300:6300 midnightntwrk/proof-server:latest
+   ```
+
+5. Start the dev server:
+   ```bash
+   npm run dev
+   ```
+
+6. Open **http://localhost:3000**
 
 ---
 
@@ -135,7 +155,7 @@ npm run build
 
 ---
 
-## Compile
+## Compile Contract
 
 ```bash
 npm run compact
@@ -151,67 +171,19 @@ Outputs compiled artifacts to `managed/cinch/` (keys, zkir, contract module).
 npm run test
 ```
 
-7 tests: contract initialisation, overall budget proof (pass + fail), category budget proof (pass + fail), proof count accumulation, owner commitment determinism.
+Tests cover: contract initialisation, overall budget proof (pass + fail), category budget proof (pass + fail), proof count accumulation, owner commitment determinism.
 
 ---
 
-## Run Locally
+## Deploy Contract to Preprod
 
-1. Start the proof server:
-   ```bash
-   docker run -p 6300:6300 midnightntwrk/proof-server:latest
-   ```
+```bash
+cd deploy
+npm install
+npm run deploy -- --network preprod
+```
 
-2. Start the dev server:
-   ```bash
-   npm run dev
-   ```
-
-3. Open **http://localhost:3000**
-
----
-
-## Manual Deployment
-
-Deployment is intentionally skipped in this repository. To deploy the contract to Preprod:
-
-1. **Install the Compact compiler**:
-   ```bash
-   curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
-   ```
-   - Reload shell: `source ~/.zshrc` or `source ~/.bashrc`
-   - Update compiler: `compact update 0.31.1`
-   - Verify: `compact --version`
-
-2. **Fund your wallet** with tNIGHT at the [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/)
-   - You need both tNIGHT and DUST tokens
-
-3. **Start the proof server**:
-   ```bash
-   docker run -p 6300:6300 midnightnetwork/proof-server
-   ```
-
-4. **Deploy using the Midnight deployment tools**:
-   - Refer to [Midnight Documentation](https://docs.midnight.network/develop) for the current deployment method
-   - Options include: Midnight CLI, Dashboard/IDE, or custom scripts
-   - Use the compiled contract from `managed/cinch/`
-
-**Note:** Deployment tooling evolves. Check the official docs for the latest method.
-
----
-
-## After Deployment
-
-The only remaining manual steps after deploying are:
-
-1. Deploy the Compact contract (see above).
-2. Copy the deployed contract address.
-3. Replace every occurrence of `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` in:
-   - `README.md` (Contract Address table)
-   - `.env.preprod` (`NEXT_PUBLIC_CONTRACT_ADDRESS`)
-   - `src/utils/contract.ts` (`CINCH_CONTRACT_ADDRESS.preprod`)
-
-No additional coding is required.
+After deploying, update `NEXT_PUBLIC_CONTRACT_ADDRESS` in `.env.preprod` and copy to `.env.local`.
 
 ---
 
@@ -225,7 +197,6 @@ No additional coding is required.
 | `NEXT_PUBLIC_INDEXER` | Indexer GraphQL endpoint |
 | `NEXT_PUBLIC_INDEXER_WS` | Indexer WebSocket endpoint |
 | `NEXT_PUBLIC_NODE` | Node RPC endpoint |
-| `MIDNIGHT_PREPROD_SEED` | 64-char hex wallet seed for deployment (never commit) |
 
 ---
 
@@ -237,6 +208,7 @@ No additional coding is required.
 | `/app` | Dashboard — connect wallet, generate ZK proofs |
 | `/app/expenses` | Log expenses locally (never transmitted) |
 | `/app/proofs` | View generated proofs |
+| `/verify` | Verify any proof by contract address — no wallet needed |
 
 ---
 
@@ -248,47 +220,31 @@ There are no pre-set limits. When generating a proof, the user enters a **thresh
 
 ## CI/CD
 
-GitHub Actions on every push to `main`: install → compact compile → tests → build.
+GitHub Actions on every push to `main`: install → compact compile → run tests → build.
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
-
----
-
-## Screenshots
-
-[PLACEHOLDER — add screenshots after deploying]
-
----
-
-## Initial Idea
-
-[PLACEHOLDER — describe your initial idea and motivation here]
 
 ---
 
 ## Troubleshooting
 
 **`compact: command not found`**
-- Install Compact compiler:
-  ```bash
-  curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
-  ```
+- Install Compact compiler (see Prerequisites above)
 - Reload shell: `source ~/.zshrc` or `source ~/.bashrc`
 - If still not found: `export PATH="$HOME/.compact/bin:$PATH"`
 
 **`No default compiler set`**
-- Run `compact update 0.31.1` to install the required compiler version
+- Run `compact update 0.31.1`
 
 **`Wallet.InsufficientFunds` on deploy**
 - Your wallet needs tNIGHT from the faucet AND DUST generated
 - Fund the wallet and wait for DUST to appear before deploying
 
 **`No Midnight wallet found`**
-- Install [Lace](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or [1AM](https://www.1am.app/), enable the Midnight Preprod network in the extension, then reload the page
+- Install [Lace](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or [1AM](https://www.1am.app/), enable Midnight Preprod, then reload
 
 **Proof server not responding**
-- Make sure Docker is running and the proof server container is up on port 6300
-- Check with: `docker ps | grep proof-server`
+- Make sure Docker is running: `docker ps | grep proof-server`
 
 ---
 

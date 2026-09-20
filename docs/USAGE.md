@@ -2,15 +2,10 @@
 
 ## What You Need
 
+- **A Midnight-compatible wallet** — [Lace](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or [1AM](https://www.1am.app/), set to **Preprod** network
 - **Node.js v22** or higher
-- **Docker Desktop** (running) — for the ZK proof server
-- **Lace wallet** browser extension with Midnight enabled, set to Preprod network
+- **Docker Desktop** (running) — for the local ZK proof server
 - **tNIGHT tokens** from the [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/)
-- **Compact compiler** — install using:
-  ```bash
-  curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
-  ```
-  Then: `compact update 0.31.1`
 
 ---
 
@@ -18,19 +13,19 @@
 
 1. **Clone and install**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/cinch.git
+   git clone https://github.com/ItsMeSwagnik/cinch.git
    cd cinch
    npm install
    ```
 
-2. **Compile the contract**
+2. **Set up environment**
    ```bash
-   npm run compact
+   copy .env.preprod .env.local
    ```
 
-3. **Start the proof server**
+3. **Start the ZK proof server**
    ```bash
-   docker run -p 6300:6300 midnightnetwork/proof-server
+   docker run -p 6300:6300 midnightntwrk/proof-server:latest
    ```
 
 4. **Start the app**
@@ -39,25 +34,19 @@
    ```
    Open **http://localhost:3000**
 
-5. **Connect Lace wallet** — click "Connect Lace Wallet" and approve in the extension
+5. **Connect your wallet** — click "Connect Wallet" on the dashboard and approve in the extension. The app reconnects automatically on page refresh.
 
-6. **Deploy the contract** — use the official Midnight deployment method:
-   - Check [Midnight Documentation](https://docs.midnight.network/develop) for current approach
-   - Options: Midnight CLI, Dashboard/IDE, or custom scripts
-   - Use the compiled contract from `managed/cinch/`
-   - Ensure wallet has tNIGHT and DUST tokens
+6. **Log your expenses** — go to the Expenses page and add your spending for the month. Enter a description, amount, category, and date. All data stays on your device — nothing is transmitted.
 
-7. **Update the contract address** — after deployment, replace `<YOUR_DEPLOYED_CONTRACT_ADDRESS>` in:
-   - `.env.preprod` → `NEXT_PUBLIC_CONTRACT_ADDRESS`
-   - `src/utils/contract.ts` → `CINCH_CONTRACT_ADDRESS.preprod`
-   - `README.md` → Contract Address table
+7. **Generate a ZK proof** — go to the Dashboard and click "Generate proof":
+   - Choose **Overall budget** to prove your total monthly spend is under a threshold
+   - Choose **Category budget** to prove a specific category (e.g. Dining) is under a threshold
+   - Set the **period** (month) and **threshold** (dollar amount)
+   - Click **Generate proof** — the ZK circuit runs locally, only pass/fail + threshold go on-chain
 
-8. **Generate a proof**
-   - Choose Overall or Category budget
-   - Set the period and threshold
-   - Click "Generate proof" — ZK circuit runs locally, only pass/fail goes on-chain
+8. **View your proofs** — go to My Proofs to see your proof history with pass/fail results and transaction IDs
 
-9. **Share your proof** — copy the shareable link and send to whoever needs to verify
+9. **Share your proof** — click **Share** on any proof to copy a verification link, or click **Verify** to open the verification page directly
 
 ---
 
@@ -65,11 +54,27 @@
 
 | Verifier sees | Stays private |
 |---|---|
-| ✓ or ✗ pass/fail | Your actual spend amount |
-| Threshold (e.g. $1,500) | Every transaction |
+| ✓ or ✗ pass/fail result | Your actual spend amount |
+| Threshold (e.g. $1,500) | Every individual transaction |
 | Period (e.g. 2026-10) | Merchant names |
 | Category label (category proofs) | Full transaction history |
 | Pseudonymous owner commitment | Your real identity |
+| Total proof count on contract | Your wallet address |
+
+The ZK circuit mathematically proves `spend ≤ threshold` without ever disclosing the spend value. The proof is verified directly from the Midnight blockchain — no trust in this app is required.
+
+---
+
+## Verifying Someone Else's Proof
+
+Anyone can verify a proof without a wallet:
+
+1. Go to **/verify** in the app (or click Verify in the nav)
+2. Paste the contract address shared by the proof owner
+3. Click **Verify** — the page reads the latest proof result directly from the Midnight indexer
+4. You see pass/fail, threshold, period, and proof type — the actual spend is never revealed
+
+Note: the contract stores only the most recent proof. This is by design — historical spend amounts are never stored on-chain.
 
 ---
 
@@ -77,8 +82,9 @@
 
 | Problem | Fix |
 |---|---|
-| "Lace wallet not found" | Install Lace extension and refresh |
-| Proof generation hangs | Check proof server: `docker ps` |
-| Deploy button greyed out | Connect wallet first |
-| Transaction fails | Fund wallet at the [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/) |
-| `npm run compact` fails | Ensure Compact compiler is on your PATH |
+| "No Midnight wallet found" | Install Lace or 1AM, enable Midnight Preprod network, reload the page |
+| Wallet shows connected but proof fails | Disconnect and reconnect the wallet |
+| Proof generation hangs | Check proof server is running: `docker ps \| grep proof-server` |
+| "Contract not found on this network" | Make sure your wallet is set to Preprod, not Preview or Mainnet |
+| Expenses not showing in proof | Make sure expense dates match the period selected in the proof generator |
+| `npm run compact` fails | Install the Compact compiler: see README Prerequisites |
