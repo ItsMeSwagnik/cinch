@@ -5,8 +5,9 @@ Standalone deployment folder. Run from here, not from the project root.
 ## Deployed
 
 | Network | Contract Address |
-|---------|-----------------|
+|---------|------------------|
 | Preview | `5e6d68d8256c168f30bb2c1c4f604b50a5542569cc3f6876d71954c1e15047e8` |
+| Preprod | `6dfe317605cdba782fcb18fbeeaa567469a42ba2aedbcf7162bce37ce4f8df96` |
 
 Wallet seeds and deployment records are saved in `.midnight-state.json` (gitignored).
 
