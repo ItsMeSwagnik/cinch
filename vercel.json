@@ -1,0 +1,14 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build:vercel",
+  "installCommand": "npm install",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_NETWORK_ID": "preprod",
+    "NEXT_PUBLIC_CONTRACT_ADDRESS": "6dfe317605cdba782fcb18fbeeaa567469a42ba2aedbcf7162bce37ce4f8df96",
+    "NEXT_PUBLIC_PROOF_SERVER": "http://localhost:6300",
+    "NEXT_PUBLIC_INDEXER": "https://indexer.preprod.midnight.network/api/v4/graphql",
+    "NEXT_PUBLIC_INDEXER_WS": "wss://indexer.preprod.midnight.network/api/v4/graphql/ws",
+    "NEXT_PUBLIC_NODE": "https://rpc.preprod.midnight.network"
+  }
+}

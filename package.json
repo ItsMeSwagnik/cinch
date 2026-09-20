@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run sync-artifacts && next build",
+    "build:vercel": "next build",
     "start": "next start",
     "lint": "next lint",
     "compact": "compact compile contracts/cinch.compact managed/cinch",
