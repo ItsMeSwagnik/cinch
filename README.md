@@ -2,16 +2,20 @@
 
 ![CI](https://github.com/ItsMeSwagnik/cinch/actions/workflows/ci.yml/badge.svg)
 ![Compact](https://img.shields.io/badge/Compact-0.31.1-orange)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
 ![Network](https://img.shields.io/badge/Network-Preprod-purple)
 
-> Prove your budget. Keep your spending yours.
+<img width="1897" height="966" alt="image" src="https://github.com/user-attachments/assets/2e4d9081-dda1-4bb7-8fb4-151b60151c99" />
+<img width="1917" height="1022" alt="image" src="https://github.com/user-attachments/assets/e29efc6f-5fbf-4a3b-ae69-4e90a3317060" />
+
+> A confidential personal spending tracker built on the [Midnight Network](https://midnight.network/) where users log all expenses (subscriptions, purchases, bills) privately and generate zero-knowledge proofs about their own budget without revealing exact amounts, merchants, or transaction history to whoever verifies the proof.
 
 ---
 
 ## Live Demo
 
-[PLACEHOLDER — paste Preprod demo URL after deploying frontend]
+[https://cinch-midnight.vercel.app](https://cinch-midnight.vercel.app)
 
 ---
 
@@ -20,7 +24,6 @@
 | Network | Contract Address | Status |
 |---------|------------------|--------|
 | Preprod | `6dfe317605cdba782fcb18fbeeaa567469a42ba2aedbcf7162bce37ce4f8df96` | ✅ Deployed |
-| Preview | `5e6d68d8256c168f30bb2c1c4f604b50a5542569cc3f6876d71954c1e15047e8` | ✅ Deployed |
 
 ---
 
@@ -250,6 +253,8 @@ Outputs compiled artifacts to `managed/cinch/` (keys, zkir, contract module).
 
 ## Run Tests
 
+<img width="1102" height="460" alt="image" src="https://github.com/user-attachments/assets/4cd741f9-23e5-4e72-8d83-4b7bbb9ec9bc" />
+
 ```bash
 npm run test
 ```
@@ -334,6 +339,24 @@ See [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
 ---
 
+## Product Proposal
+
+See [PROPOSAL.md](./PROPOSAL.md)
+
+---
+
+## Google Drive Demo Link:
+
+[Paste your link here]
+
+---
+
+## Initial Idea
+
+> _Cinch is a confidential personal spending tracker built on Midnight. Users log expenses privately and generate zero-knowledge proofs that their spending stays within budget — an overall "under $X/month" proof, plus category-specific proofs (dining, subscriptions, etc.) — without ever revealing exact amounts, merchants, or transaction history to whoever verifies it. This makes financial discipline provable without the usual tradeoff of exposing full transaction data._
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -370,7 +393,7 @@ See [docs/USAGE.md](docs/USAGE.md)
 
 ## Product X Profile
 
-[PLACEHOLDER — add X account link after creating the account]
+[https://x.com/cinch_midnight](https://x.com/cinch_midnight)]
 
 ---
 
