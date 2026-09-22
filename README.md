@@ -393,7 +393,7 @@ See [docs/USAGE.md](docs/USAGE.md)
 
 ## Product X Profile
 
-[https://x.com/cinch_midnight](https://x.com/cinch_midnight)]
+[https://x.com/cinch_midnight](https://x.com/cinch_midnight)
 
 ---
 
