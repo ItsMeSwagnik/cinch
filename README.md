@@ -347,7 +347,7 @@ See [PROPOSAL.md](./PROPOSAL.md)
 
 ## Google Drive Demo Link:
 
-[Paste your link here]
+[https://drive.google.com/file/d/1LzTt6Ge98rOcr4kBiT_aVx4bCtt_Vtha/view?usp=sharing](https://drive.google.com/file/d/1LzTt6Ge98rOcr4kBiT_aVx4bCtt_Vtha/view?usp=sharing)
 
 ---
 
